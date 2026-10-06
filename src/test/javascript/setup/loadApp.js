@@ -27,6 +27,7 @@ const REGISTERED_IDS = [
   'preset-30',
   'preset-90',
   'status-line',
+  'theme-toggle',
   'kpis',
   'kpi-on-time',
   'kpi-open-tickets',

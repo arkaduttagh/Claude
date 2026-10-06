@@ -13,6 +13,9 @@
   var DEFAULT_PRESET_DAYS = 30;
   var LATE_LIMIT = 20;
   var SVG_NS = 'http://www.w3.org/2000/svg';
+  var THEME_KEY = 'theme';
+  var THEMES = ['light', 'dark'];
+  var DEFAULT_THEME = 'dark';
 
   // ---------- API client ----------
 
@@ -102,6 +105,15 @@
     return Math.round((parseIso(iso) - parseIso(today)) / 86400000);
   }
 
+  /** Only 'light' or 'dark' are valid; anything else (missing, tampered) gives the default. */
+  function normalizeTheme(value) {
+    return THEMES.indexOf(value) >= 0 ? value : DEFAULT_THEME;
+  }
+
+  function otherTheme(theme) {
+    return theme === 'dark' ? 'light' : 'dark';
+  }
+
   // ---------- App ----------
 
   function initApp(document, fetchImpl) {
@@ -119,6 +131,7 @@
       kpiOpenTickets: document.getElementById('kpi-open-tickets'),
       kpiRevenue: document.getElementById('kpi-revenue'),
       kpiOrders: document.getElementById('kpi-orders'),
+      themeToggle: document.getElementById('theme-toggle'),
       chartOnTime: document.getElementById('chart-on-time'),
       chartTickets: document.getElementById('chart-tickets'),
       lateBody: document.getElementById('late-body'),
@@ -130,6 +143,7 @@
       from: null,
       to: null,
       preset: DEFAULT_PRESET_DAYS,
+      theme: DEFAULT_THEME,
       kpis: null,
       onTime: [],
       late: [],
@@ -169,6 +183,34 @@
 
     function setKpi(el, value) {
       el.querySelector('.kpi-value').textContent = value;
+    }
+
+    // ---------- Theme ----------
+
+    function readStoredTheme() {
+      try {
+        return normalizeTheme(root.localStorage.getItem(THEME_KEY));
+      } catch (e) {
+        return DEFAULT_THEME;
+      }
+    }
+
+    function applyTheme(theme) {
+      state.theme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+      var next = otherTheme(theme);
+      els.themeToggle.textContent = next === 'light' ? 'Light theme' : 'Dark theme';
+      els.themeToggle.setAttribute('aria-label', 'Switch to ' + next + ' theme');
+    }
+
+    function toggleTheme() {
+      var theme = otherTheme(state.theme);
+      applyTheme(theme);
+      try {
+        root.localStorage.setItem(THEME_KEY, theme);
+      } catch (e) {
+        // Storage unavailable: the theme still switches, it just is not remembered.
+      }
     }
 
     // ---------- Rendering ----------
@@ -333,6 +375,9 @@
       return load(range.from, range.to);
     }
 
+    els.themeToggle.addEventListener('click', toggleTheme);
+    applyTheme(readStoredTheme());
+
     els.form.addEventListener('submit', function (event) {
       event.preventDefault();
       state.preset = null;
@@ -359,6 +404,7 @@
       state: state,
       load: load,
       selectPreset: selectPreset,
+      toggleTheme: toggleTheme,
       api: api
     };
   }
@@ -372,7 +418,8 @@
     formatMoney: formatMoney,
     barWidths: barWidths,
     applyPreset: applyPreset,
-    daysUntil: daysUntil
+    daysUntil: daysUntil,
+    normalizeTheme: normalizeTheme
   };
 
   if (typeof module !== 'undefined') {
